@@ -1,11 +1,21 @@
+"""
+This module performs image segmentation using MONAI and NiftyNet models
+and provides a web interface for predictions through a Flask application.
+"""
 import os
 import sqlite3
 from flask import Flask, request, jsonify, render_template
-import monai
+# import monai
 from monai.transforms import Compose, LoadImage, EnsureChannelFirst, ScaleIntensity, ToTensor
+from monai.networks.nets import UNet
+import openslide
 import torch
-from torch.utils.data import DataLoader  # noqa
+# from torch.utils.data import DataLoader
 from niftynet.application.segmentation_application import SegmentationApplication  # type: ignore
+
+# os.add_dll_directory("C:\\Users\\avpot\\Downloads\\openslide-bin-4.0.0.2-windows-x64\\openslide-bin-4.0.0.2-windows-x64\\bin")
+# os.add_dll_directory(r"C:\Users\avpot\Downloads\openslide-bin-4.0.0.2-windows-x64\openslide-bin-4.0.0.2-windows-x64\bin")
+
 
 app = Flask(__name__)
 
@@ -19,7 +29,7 @@ transforms = Compose([
 
 # Загрузка моделей
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-monai_model = monai.networks.nets.UNet(
+monai_model = UNet(
     spatial_dims=3,
     in_channels=1,
     out_channels=2,
@@ -98,16 +108,21 @@ def predict():
         str: JSON-ответ с результатами предсказаний от моделей MONAI и NiftyNet.
     """
     image = request.files["image"]
-    img = transforms(image)
+    # Используем OpenSlide для открытия SVS-файла
+    slide = openslide.OpenSlide(image)
+    thumbnail = slide.get_thumbnail((1024, 1024))  # Извлекаем миниатюру
+    # Преобразуем миниатюру в формат, совместимый с моделями
+    img = transforms(thumbnail)
     img = img.unsqueeze(0).to(device)
 
     # Предсказание для модели MONAI
     with torch.no_grad():
-        monai_prediction = monai_model(img).cpu().numpy().tolist()  # Использование метода forward
+        monai_prediction = monai_model.forward(img).cpu().numpy().tolist()
     save_result("MONAI", str(monai_prediction))
 
     # Обработка изображения для NiftyNet
-    niftynet_result = niftynet_app.run_inference(img)
+    # niftynet_result = niftynet_app.run_inference(img)
+    niftynet_result = niftynet_app.run_inference({'image': img.cpu().numpy()})
     niftynet_prediction = niftynet_result.tolist()
     save_result("NiftyNet", str(niftynet_prediction))
 
