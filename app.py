@@ -13,7 +13,7 @@ import torch
 # from torch.utils.data import DataLoader
 from niftynet.application.segmentation_application import SegmentationApplication  # type: ignore
 
-# os.add_dll_directory("C:\\Users\\avpot\\Downloads\\openslide-bin-4.0.0.2-windows-x64\\openslide-bin-4.0.0.2-windows-x64\\bin")
+os.add_dll_directory("C:\\Users\\avpot\\Downloads\\openslide-bin-4.0.0.2-windows-x64\\openslide-bin-4.0.0.2-windows-x64\\bin")
 # os.add_dll_directory(r"C:\Users\avpot\Downloads\openslide-bin-4.0.0.2-windows-x64\openslide-bin-4.0.0.2-windows-x64\bin")
 
 
